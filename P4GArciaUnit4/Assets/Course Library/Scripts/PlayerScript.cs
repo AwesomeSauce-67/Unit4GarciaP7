@@ -21,6 +21,7 @@ public class PlayerScript : MonoBehaviour
     {
         float fowardInput = Input.GetAxis("Vertical");
         playerRb.AddForce(focalPoint.transform.forward * speed * fowardInput);
+        powerupIndicator.transform.position = transform.position+ new Vector3(0, -0.5f, 0);
     }
     private void OnTriggerEnter(Collider other)
     {
