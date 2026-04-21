@@ -9,10 +9,18 @@ public class PlayerScript : MonoBehaviour
     public bool hasPowerup;
     private float powerupStrength = 15;
     public GameObject powerupIndicator;
+
     public PowerUpType currentPowerup = PowerUpType.None;
     public GameObject rocketPrefab;
     private GameObject tmpRocket;
     private Coroutine powerupCountdown;
+
+    public float hangTime;
+    public float smashSpeed;
+    public float explosionForce;
+    public float explosionRadius;
+    bool smashing=false;
+    float floorY;
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -31,6 +39,12 @@ public class PlayerScript : MonoBehaviour
         if(currentPowerup == PowerUpType.Rockets && Input.GetKeyDown(KeyCode.F))
         {
             LaunchRockets();
+        }
+
+        if (currentPowerup == PowerUpType.Smash && Input.GetKeyDown(KeyCode.Space) && !smashing)
+        {
+            smashing = true; 
+            StartCoroutine(Smash()); 
         }
     }
     private void OnTriggerEnter(Collider other)
@@ -56,6 +70,36 @@ public class PlayerScript : MonoBehaviour
         currentPowerup = PowerUpType.None;
         powerupIndicator.SetActive(false);
     }
+
+    IEnumerator Smash()
+    {
+        var enemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
+
+
+            floorY = transform.position.y;
+
+            float jumpTime = Time.time + hangTime;
+
+            while(Time.time < jumpTime)
+            {
+                playerRb.angularVelocity = new Vector2(playerRb.angularVelocity.x, smashSpeed);
+            yield return null;
+            }
+
+            while (transform.position.y > floorY)
+            {
+                playerRb.angularVelocity=new Vector2(playerRb.angularVelocity.x, -smashSpeed * 2);
+            yield return null;
+            }
+
+            for (int i = 0; i < enemies.Length; i++)
+            {
+            if (enemies[i] != null)
+                enemies[i].GetComponent<Rigidbody>().AddExplosionForce(explosionForce, transform.position, explosionRadius, 0.0f, ForceMode.Impulse);
+            }
+
+            smashing = false;
+    }
     private void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.CompareTag("Enemy") && currentPowerup == PowerUpType.Pushback)
@@ -72,7 +116,7 @@ public class PlayerScript : MonoBehaviour
     }
     void LaunchRockets()
     {
-        foreach(var enemy in FindObjectsOfType<Enemy>())
+        foreach(var enemy in FindObjectsByType<Enemy>(FindObjectsSortMode.None))
         {
             tmpRocket = Instantiate(rocketPrefab, transform.position + Vector3.up, Quaternion.identity);
             tmpRocket.GetComponent<RocketBehaviour>().Fire(enemy.transform);
