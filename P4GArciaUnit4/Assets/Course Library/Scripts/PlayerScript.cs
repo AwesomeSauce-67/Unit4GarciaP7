@@ -1,4 +1,5 @@
 using System.Collections;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class PlayerScript : MonoBehaviour
@@ -43,8 +44,8 @@ public class PlayerScript : MonoBehaviour
 
         if (currentPowerup == PowerUpType.Smash && Input.GetKeyDown(KeyCode.Space) && !smashing)
         {
-            smashing = true; 
-            StartCoroutine(Smash()); 
+            smashing = true;
+            StartCoroutine(Smash());
         }
     }
     private void OnTriggerEnter(Collider other)
@@ -76,19 +77,19 @@ public class PlayerScript : MonoBehaviour
         var enemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
 
 
-            floorY = transform.position.y;
+            floorY = transform.position.y-0.1f;
 
             float jumpTime = Time.time + hangTime;
 
             while(Time.time < jumpTime)
             {
-                playerRb.angularVelocity = new Vector2(playerRb.angularVelocity.x, smashSpeed);
+                playerRb.linearVelocity = new Vector3(playerRb.linearVelocity.x, smashSpeed, playerRb.linearVelocity.z);
             yield return null;
             }
 
             while (transform.position.y > floorY)
             {
-                playerRb.angularVelocity=new Vector2(playerRb.angularVelocity.x, -smashSpeed * 2);
+                playerRb.linearVelocity =new Vector3(playerRb.linearVelocity.x, -smashSpeed * 2, playerRb.linearVelocity.z);
             yield return null;
             }
 
@@ -100,18 +101,31 @@ public class PlayerScript : MonoBehaviour
 
             smashing = false;
     }
+
     private void OnCollisionEnter(Collision collision)
     {
-        if (collision.gameObject.CompareTag("Enemy") && currentPowerup == PowerUpType.Pushback)
+        if (collision.gameObject.CompareTag("Enemy") && currentPowerup == PowerUpType.Pushback && hasPowerup)
         {
             Rigidbody enemyRigidbody = collision.gameObject.GetComponent<Rigidbody>();
             Vector3 awayFromPlayer = (collision.gameObject.transform.position - transform.position);
+            collision.gameObject.GetComponent<Rigidbody>().AddForce(awayFromPlayer.normalized * powerupStrength, ForceMode.Impulse);
+        }
 
 
-            Debug.Log("Collided with " + collision.gameObject.name + " with powerup set to " + hasPowerup);
-            enemyRigidbody.AddForce(awayFromPlayer * powerupStrength, ForceMode.Impulse);
-            Debug.Log("Player collided with: " + collision.gameObject.name + "with powerup set to " +
-                currentPowerup.ToString());
+        if (collision.gameObject.CompareTag("Enemy"))
+        {
+            Rigidbody enemyRigidbody = collision.gameObject.GetComponent<Rigidbody>();
+            Vector3 awayFromEnemy = (transform.position - collision.gameObject.transform.position);
+            playerRb.AddForce(awayFromEnemy * 10, ForceMode.Impulse);
+
+        }
+
+        if (collision.gameObject.CompareTag("Enemy"))
+        {
+            Rigidbody enemyRb = collision.gameObject.GetComponent<Rigidbody>();
+            Vector3 awayFromPlayer = collision.gameObject.transform.position - transform.position;
+            float knockbackForce = 15f;
+            enemyRb.AddForce(awayFromPlayer.normalized * knockbackForce, ForceMode.Impulse);
         }
     }
     void LaunchRockets()
